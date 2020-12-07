@@ -1,11 +1,16 @@
 
 local a = vim.api
 _G.a = vim.api
-local luadev = require'luadev'
-local nsync = _G.nsync or {}
-_G.nsync = nsync
+local function try_require(name)
+  local status, mod = pcall(require, name)
+  if status then return mod end
+end
+local luadev = try_require'luadev'
 
-nsync.ns = a.nvim_create_namespace("nsync")
+local nsync = _G._nsync or {}
+_G._nsync = nsync
+
+nsync.ns = a.nvim_create_namespace'nsync'
 
 function nsync.start(bufnr)
   if bufnr == nil or bufnr == 0 then
@@ -39,9 +44,11 @@ function nsync.on_bytes(_, buf, tick, start_row, start_col, start_byte, old_row,
     nsync.sched = true
   end
 
-  vim.schedule(function()
-    luadev.print(vim.inspect{start_row, start_col, start_byte, old_row, old_col, old_byte, new_row, new_col, new_byte})
-  end)
+  if luadev then
+    vim.schedule(function()
+      luadev.print(vim.inspect{start_row, start_col, start_byte, old_row, old_col, old_byte, new_row, new_col, new_byte})
+    end)
+  end
 end
 
 function nsync.sync()
@@ -89,17 +96,4 @@ end
 
 nsync.reset()
 
-ra = [[
-nsync.start()
-nsync.reset()
-eee
-eee
-eeee
-nsync.show()
-nsync.sync()
-bx
-yb
-  vim.schedule(function() luadev.print(vim.inspect(yarg)) end)
-  -- args are "nvim_buf_lines_event", 1, 85, 8, 8, { "" }, false
-bb
-]]
+return nsync
